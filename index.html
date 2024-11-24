@@ -1,93 +1,157 @@
-let productData = []; // 初期値は空
-let refillList = [];
-let html5QrCode;
-
-async function loadProductData() {
-    try {
-        const response = await fetch('product-data.json'); // JSON ファイルを取得
-        if (!response.ok) {
-            throw new Error(`HTTPエラー: ${response.status}`);
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>補充担当者支援アプリ</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #001829;
+            color: #e0f2ff;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        productData = await response.json(); // データを JavaScript オブジェクトに変換
-        console.log('商品データをロードしました:', productData);
-    } catch (error) {
-        console.error('商品データのロードに失敗しました:', error);
-    }
-}
+        h1, h2 {
+            color: #4db8ff;
+            text-shadow: 0 0 10px #4db8ff;
+        }
+        #reader {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            border: 2px solid #4db8ff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        #status.success {
+            background-color: #00ccff;
+            color: #001829;
+        }
+        #status.error {
+            background-color: #ff3366;
+            color: #ffffff;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin: 5px 0;
+        }
+    </style>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+        let productData = []; // 初期値は空
+        let refillList = [];
+        let html5QrCode;
 
-function startScanning(mode) {
-    const statusElement = document.getElementById('status');
-    statusElement.textContent = 'スキャン進行中...';
-    statusElement.className = 'scanning';
-
-    html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-        { facingMode: "environment" },
-        {
-            fps: 10,
-            qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-            if (mode === 'sales') {
-                handleSalesScan(decodedText);
-            } else if (mode === 'warehouse') {
-                handleWarehouseScan(decodedText);
+        async function loadProductData() {
+            try {
+                const response = await fetch('product-data.json'); // JSON ファイルを取得
+                if (!response.ok) {
+                    throw new Error(`HTTPエラー: ${response.status}`);
+                }
+                productData = await response.json(); // データを JavaScript オブジェクトに変換
+                console.log('商品データをロードしました:', productData);
+            } catch (error) {
+                console.error('商品データのロードに失敗しました:', error);
             }
-            stopScanning();
-        },
-        (errorMessage) => {
-            console.error(errorMessage);
         }
-    ).catch(err => {
-        statusElement.textContent = `エラー: ${err}`;
-        statusElement.className = 'error';
-    });
-}
 
-function stopScanning() {
-    if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-            document.getElementById('status').textContent = 'スキャン停止';
-            document.getElementById('status').className = '';
-        }).catch(err => {
-            document.getElementById('status').textContent = `スキャン停止エラー: ${err}`;
-            document.getElementById('status').className = 'error';
-        });
-    }
-}
+        function startScanning(mode) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = 'スキャン進行中...';
+            statusElement.className = 'scanning';
 
-function handleSalesScan(decodedText) {
-    const statusElement = document.getElementById('status');
-    const product = productData.find(item => item.barCode === decodedText);
-
-    if (product) {
-        const existingItem = refillList.find(item => item.code === product.barCode);
-
-        if (!existingItem) {
-            refillList.push({ code: product.barCode, name: product.name, status: '要補充' });
-            updateRefillList();
-            statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
-            statusElement.className = 'success';
-        } else {
-            statusElement.textContent = `バーコード ${decodedText} (${product.name}) はすでにリストに存在します。`;
-            statusElement.className = 'success';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText) => {
+                    if (mode === 'sales') {
+                        handleSalesScan(decodedText);
+                    }
+                    stopScanning();
+                },
+                (errorMessage) => {
+                    console.error(errorMessage);
+                }
+            ).catch(err => {
+                statusElement.textContent = `エラー: ${err}`;
+                statusElement.className = 'error';
+            });
         }
-    } else {
-        statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
-        statusElement.className = 'error';
-    }
-}
 
-function updateRefillList() {
-    const listElement = document.getElementById('salesRefillList');
-    listElement.innerHTML = '';
+        function stopScanning() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('status').textContent = 'スキャン停止';
+                    document.getElementById('status').className = '';
+                }).catch(err => {
+                    document.getElementById('status').textContent = `スキャン停止エラー: ${err}`;
+                    document.getElementById('status').className = 'error';
+                });
+            }
+        }
 
-    refillList.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = `${item.code} - ${item.name} - ${item.status}`;
-        listElement.appendChild(li);
-    });
-}
+        function handleSalesScan(decodedText) {
+            const statusElement = document.getElementById('status');
+            const product = productData.find(item => item.barCode === decodedText);
 
-// ページロード時に JSON をロード
-document.addEventListener('DOMContentLoaded', loadProductData);
+            if (product) {
+                const existingItem = refillList.find(item => item.code === product.barCode);
+
+                if (!existingItem) {
+                    refillList.push({ code: product.barCode, name: product.name, status: '要補充' });
+                    updateRefillList();
+                    statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
+                    statusElement.className = 'success';
+                } else {
+                    statusElement.textContent = `バーコード ${decodedText} (${product.name}) はすでにリストに存在します。`;
+                    statusElement.className = 'success';
+                }
+            } else {
+                statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
+                statusElement.className = 'error';
+            }
+        }
+
+        function updateRefillList() {
+            const listElement = document.getElementById('salesRefillList');
+            listElement.innerHTML = '';
+
+            refillList.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.code} - ${item.name} - ${item.status}`;
+                listElement.appendChild(li);
+            });
+        }
+
+        // ページロード時に JSON をロード
+        document.addEventListener('DOMContentLoaded', loadProductData);
+    </script>
+</head>
+<body>
+    <h1>補充担当者支援アプリ</h1>
+
+    <h2>売場スキャン</h2>
+    <button onclick="startScanning('sales')">売場スキャン開始</button>
+    <ul id="salesRefillList"></ul>
+
+    <div id="reader" style="width: 100%; max-width: 600px;"></div>
+
+    <div id="status"></div>
+</body>
+</html>
