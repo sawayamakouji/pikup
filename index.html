@@ -98,6 +98,7 @@
         let productData = [];
         let refillList = [];
         let html5QrCode;
+        let isPlayingSound = false; // 音声再生中フラグ
 
         async function loadProductData() {
             try {
@@ -121,7 +122,7 @@
             html5QrCode.start(
                 { facingMode: "environment" },
                 {
-                    fps: 5, // スキャン頻度を制御
+                    fps: 5,
                     qrbox: { width: 250, height: 250 }
                 },
                 (decodedText) => {
@@ -168,7 +169,7 @@
 
         function handleWarehouseScan(decodedText) {
             const statusElement = document.getElementById('status');
-            const product = productData.find(item => item.salescode === decodedText.trim());
+            const product = productData.find(item => item.salesCode === decodedText.trim()); // 修正済み
 
             if (product) {
                 const foundItem = refillList.find(item => item.code === product.barCode);
@@ -203,6 +204,9 @@
         }
 
         async function playSound(type) {
+            if (isPlayingSound) return; // 再生中は新しい再生を防止
+            isPlayingSound = true;
+
             const sounds = {
                 success: "./sounds/success.mp3",
                 error: "./sounds/error.mp3",
@@ -215,6 +219,8 @@
                 await audio.play();
             } catch (err) {
                 console.error('音声再生エラー:', err);
+            } finally {
+                isPlayingSound = false; // 再生終了後に解除
             }
         }
 
