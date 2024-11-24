@@ -67,6 +67,18 @@
             }
         }
 
+        function playSound(type) {
+            const sounds = {
+                success: "https://www.soundjay.com/button/beep-07.wav",
+                error: "https://www.soundjay.com/button/beep-10.wav",
+                picking: "https://www.soundjay.com/button/beep-09.wav",
+                replenish: "https://www.soundjay.com/button/beep-08.wav"
+            };
+
+            const audio = new Audio(sounds[type]);
+            audio.play();
+        }
+
         function startScanning(mode) {
             const statusElement = document.getElementById('status');
             statusElement.textContent = 'スキャン進行中...';
@@ -85,7 +97,6 @@
                     } else if (mode === 'warehouse') {
                         handleWarehouseScan(decodedText);
                     }
-                    stopScanning();
                 },
                 (errorMessage) => {
                     console.error(errorMessage);
@@ -93,19 +104,8 @@
             ).catch(err => {
                 statusElement.textContent = `エラー: ${err}`;
                 statusElement.className = 'error';
+                playSound("error");
             });
-        }
-
-        function stopScanning() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('status').textContent = 'スキャン停止';
-                    document.getElementById('status').className = '';
-                }).catch(err => {
-                    document.getElementById('status').textContent = `スキャン停止エラー: ${err}`;
-                    document.getElementById('status').className = 'error';
-                });
-            }
         }
 
         function handleSalesScan(decodedText) {
@@ -120,13 +120,16 @@
                     updateRefillList();
                     statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
                     statusElement.className = 'success';
+                    playSound("replenish");
                 } else {
                     statusElement.textContent = `バーコード ${decodedText} (${product.name}) はすでにリストに存在します。`;
                     statusElement.className = 'success';
+                    playSound("success");
                 }
             } else {
                 statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
                 statusElement.className = 'error';
+                playSound("error");
             }
         }
 
@@ -142,13 +145,16 @@
                     updateRefillList();
                     statusElement.textContent = `商品コード ${decodedText} が見つかり、ステータスを「ピッキング」に更新しました。`;
                     statusElement.className = 'success';
+                    playSound("picking");
                 } else {
                     statusElement.textContent = `販売商品コード ${decodedText} の関連するバラ商品がリストに存在しません。`;
                     statusElement.className = 'error';
+                    playSound("error");
                 }
             } else {
                 statusElement.textContent = `販売商品コード ${decodedText} がデータに存在しません。`;
                 statusElement.className = 'error';
+                playSound("error");
             }
         }
 
