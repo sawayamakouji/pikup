@@ -66,16 +66,21 @@
             color: #ffffff;
         }
         ul {
-            padding-left: 20px;
+            padding-left: 0;
             list-style: none;
             text-align: left;
             margin-top: 20px;
         }
         li {
             margin: 5px 0;
-            background-color: #00304d;
             padding: 10px;
             border-radius: 5px;
+            background-color: #00304d; /* デフォルト背景色 */
+            color: #e0f2ff; /* デフォルト文字色 */
+        }
+        .picking-status {
+            background-color: #006d77; /* ピッキング状態の背景色 */
+            color: #ffffff; /* 白い文字 */
         }
     </style>
 </head>
@@ -98,27 +103,10 @@
         let productData = [];
         let refillList = [];
         let html5QrCode;
-        let isPlayingSound = false; // 音声再生中フラグ
-        let lastScannedCode = null; // 最後にスキャンされたコード
-        let lastScannedTime = 0; // 最後にスキャンされた時間 (タイムスタンプ)
-
-        const SCAN_COOLDOWN = 2000;
-        
-        async function loadProductData() {
-            try {
-                const response = await fetch('product-data.json');
-                if (!response.ok) {
-                    throw new Error(`HTTPエラー: ${response.status}`);
-                }
-                productData = await response.json();
-                console.log('商品データをロードしました:', productData);
-            } catch (error) {
-                console.error('商品データのロードに失敗しました:', error);
-            }
-        }
-
-
-        
+        let isPlayingSound = false; 
+        let lastScannedCode = null; 
+        let lastScannedTime = 0; 
+        const SCAN_COOLDOWN = 2000; 
 
         async function loadProductData() {
             try {
@@ -137,7 +125,7 @@
             const statusElement = document.getElementById('status');
             statusElement.textContent = 'スキャン進行中...';
             statusElement.className = '';
-        
+
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start(
                 { facingMode: "environment" },
@@ -147,18 +135,14 @@
                 },
                 (decodedText) => {
                     const now = Date.now();
-        
-                    // 短時間で同じコードを無視する
                     if (decodedText === lastScannedCode && now - lastScannedTime < SCAN_COOLDOWN) {
                         console.log("スキャンを無視しました: 同じコードが短時間でスキャンされました。");
                         return;
                     }
-        
-                    // 新しいコードを記録
+
                     lastScannedCode = decodedText;
                     lastScannedTime = now;
-        
-                    console.log(`スキャンされたデータ: ${decodedText}`);
+
                     if (mode === 'sales') {
                         handleSalesScan(decodedText);
                     } else if (mode === 'warehouse') {
@@ -201,7 +185,7 @@
 
         function handleWarehouseScan(decodedText) {
             const statusElement = document.getElementById('status');
-            const product = productData.find(item => item.salesCode === decodedText.trim()); // 修正済み
+            const product = productData.find(item => item.salesCode === decodedText.trim());
 
             if (product) {
                 const foundItem = refillList.find(item => item.code === product.barCode);
@@ -231,12 +215,17 @@
             refillList.forEach(item => {
                 const li = document.createElement('li');
                 li.textContent = `${item.code} - ${item.name} - ${item.status}`;
+
+                if (item.status === 'ピッキング') {
+                    li.className = 'picking-status';
+                }
+
                 listElement.appendChild(li);
             });
         }
 
         async function playSound(type) {
-            if (isPlayingSound) return; // 再生中は新しい再生を防止
+            if (isPlayingSound) return;
             isPlayingSound = true;
 
             const sounds = {
@@ -252,7 +241,7 @@
             } catch (err) {
                 console.error('音声再生エラー:', err);
             } finally {
-                isPlayingSound = false; // 再生終了後に解除
+                isPlayingSound = false;
             }
         }
 
