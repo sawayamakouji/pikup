@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>補充担当者支援アプリ</title>
+    <!-- html5-qrcode ライブラリの読み込み -->
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
     <style>
         #reader {
@@ -14,23 +15,29 @@
         video {
             width: 100%;
         }
+        button {
+            margin: 10px;
+        }
     </style>
 </head>
 <body>
     <h1>補充担当者支援アプリ</h1>
 
+    <!-- 売場スキャン -->
     <div>
         <h2>売場スキャン</h2>
         <button onclick="startScanner('sales')">売場用バーコード読み取り開始</button>
         <ul id="salesRefillList"></ul>
     </div>
 
+    <!-- 倉庫スキャン -->
     <div>
         <h2>倉庫スキャン</h2>
         <button onclick="startScanner('warehouse')">倉庫用バーコード読み取り開始</button>
         <ul id="warehouseResultList"></ul>
     </div>
 
+    <!-- カメラビュー -->
     <div id="reader" style="display: none;"></div>
 
     <script>
@@ -42,9 +49,10 @@
             "7613287388223": "コントレックス ケース"
         };
 
+        // バーコードスキャナーの起動
         function startScanner(mode) {
             const reader = document.getElementById('reader');
-            reader.style.display = 'block';
+            reader.style.display = 'block'; // カメラビューを表示
             const html5QrCode = new Html5Qrcode("reader");
 
             html5QrCode.start(
@@ -57,22 +65,24 @@
                     } else if (mode === 'warehouse') {
                         handleWarehouseScan(decodedText);
                     }
-                    html5QrCode.stop();
-                    reader.style.display = 'none';
+                    html5QrCode.stop(); // スキャナーを停止
+                    reader.style.display = 'none'; // カメラビューを非表示
                 },
                 (errorMessage) => {
-                    console.log(`QR Code no match: ${errorMessage}`);
-                })
-                .catch((err) => {
-                    console.error(`Error starting scanner: ${err}`);
-                });
+                    console.error(`QR Code no match: ${errorMessage}`);
+                }
+            ).catch(err => {
+                console.error(`Error starting scanner: ${err}`);
+            });
         }
 
+        // 売場スキャンの処理
         function handleSalesScan(decodedText) {
             refillList.push({ code: decodedText, status: '要補充' });
             updateSalesRefillList();
         }
 
+        // 倉庫スキャンの処理
         function handleWarehouseScan(decodedText) {
             const foundItem = refillList.find(item => warehouseData[decodedText] && warehouseData[decodedText].includes(item.code));
             const resultList = document.getElementById('warehouseResultList');
@@ -91,6 +101,7 @@
             updateSalesRefillList();
         }
 
+        // 売場スキャンのリストを更新
         function updateSalesRefillList() {
             const listElement = document.getElementById('salesRefillList');
             listElement.innerHTML = '';
@@ -102,6 +113,7 @@
             });
         }
 
+        // 音声を再生
         function playSound(type) {
             const audio = new Audio(type === 'success' ? 'success-sound.mp3' : 'error-sound.mp3');
             audio.play();
