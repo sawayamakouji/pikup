@@ -99,6 +99,26 @@
         let refillList = [];
         let html5QrCode;
         let isPlayingSound = false; // 音声再生中フラグ
+        let lastScannedCode = null; // 最後にスキャンされたコード
+        let lastScannedTime = 0; // 最後にスキャンされた時間 (タイムスタンプ)
+
+        const SCAN_COOLDOWN = 2000;
+        
+        async function loadProductData() {
+            try {
+                const response = await fetch('product-data.json');
+                if (!response.ok) {
+                    throw new Error(`HTTPエラー: ${response.status}`);
+                }
+                productData = await response.json();
+                console.log('商品データをロードしました:', productData);
+            } catch (error) {
+                console.error('商品データのロードに失敗しました:', error);
+            }
+        }
+
+
+        
 
         async function loadProductData() {
             try {
@@ -117,15 +137,27 @@
             const statusElement = document.getElementById('status');
             statusElement.textContent = 'スキャン進行中...';
             statusElement.className = '';
-
+        
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start(
                 { facingMode: "environment" },
                 {
-                    fps: 5,
+                    fps: 10,
                     qrbox: { width: 250, height: 250 }
                 },
                 (decodedText) => {
+                    const now = Date.now();
+        
+                    // 短時間で同じコードを無視する
+                    if (decodedText === lastScannedCode && now - lastScannedTime < SCAN_COOLDOWN) {
+                        console.log("スキャンを無視しました: 同じコードが短時間でスキャンされました。");
+                        return;
+                    }
+        
+                    // 新しいコードを記録
+                    lastScannedCode = decodedText;
+                    lastScannedTime = now;
+        
                     console.log(`スキャンされたデータ: ${decodedText}`);
                     if (mode === 'sales') {
                         handleSalesScan(decodedText);
