@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>補充担当者支援アプリ</title>
+</head>
+<body>
+    <h1>補充担当者支援アプリ</h1>
+
+    <div>
+        <h2>売場スキャン</h2>
+        <input type="text" id="salesScan" placeholder="バラ商品コードをスキャン">
+        <button onclick="addToRefillList()">補充リストに追加</button>
+        <ul id="refillList"></ul>
+    </div>
+
+    <div>
+        <h2>倉庫スキャン</h2>
+        <input type="text" id="warehouseScan" placeholder="販売商品コードをスキャン">
+        <button onclick="updateStatus()">在庫確認</button>
+        <ul id="resultList"></ul>
+    </div>
+
+    <script>
+        const refillList = []; // 売場でスキャンした商品のリスト
+        const warehouseData = {
+            "4987035332602": "ポカリスエット 500ml ケース",
+            "4987035504528": "SOYSH ケース",
+            "4987035561729": "オロナミンC ケース",
+            "7613287388223": "コントレックス ケース"
+        };
+
+        function addToRefillList() {
+            const salesCode = document.getElementById('salesScan').value;
+            if (!salesCode) {
+                alert('コードを入力してください。');
+                return;
+            }
+
+            refillList.push({ code: salesCode, status: '要補充' });
+            updateRefillList();
+        }
+
+        function updateRefillList() {
+            const listElement = document.getElementById('refillList');
+            listElement.innerHTML = '';
+
+            refillList.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.code} - ${item.status}`;
+                listElement.appendChild(li);
+            });
+        }
+
+        function updateStatus() {
+            const warehouseCode = document.getElementById('warehouseScan').value;
+            if (!warehouseCode) {
+                alert('コードを入力してください。');
+                return;
+            }
+
+            const foundItem = refillList.find(item => warehouseData[warehouseCode] && warehouseData[warehouseCode].includes(item.code));
+            const resultList = document.getElementById('resultList');
+            const li = document.createElement('li');
+
+            if (foundItem) {
+                foundItem.status = 'ピッキング';
+                li.textContent = `商品: ${warehouseData[warehouseCode]} - ステータス: ピッキング`;
+                playSound('success');
+            } else {
+                li.textContent = `商品コード ${warehouseCode} はリストに存在しません。`;
+                playSound('error');
+            }
+
+            resultList.appendChild(li);
+            updateRefillList();
+        }
+
+        function playSound(type) {
+            const audio = new Audio(type === 'success' ? 'success-sound.mp3' : 'error-sound.mp3');
+            audio.play();
+        }
+    </script>
+</body>
+</html>
