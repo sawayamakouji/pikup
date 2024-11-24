@@ -81,48 +81,6 @@
         .picking-status {
             background-color: #006d77;
             color: #ffffff;
-        .instructions {
-            margin-top: 30px;
-            text-align: left;
-        }
-        .instructions h2 {
-            color: #4db8ff;
-        }
-        .instruction-item {
-            margin-bottom: 20px;
-            background-color: #002a3b;
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .instruction-item img {
-            max-width: 80px;
-            max-height: 80px;
-            border-radius: 8px;
-            border: 2px solid #4db8ff;
-        }
-        .instruction-item p {
-            margin: 0;
-            color: #e0f2ff;
-        }
-        .scroll-top {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #4db8ff;
-            color: #001829;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-        .scroll-top:hover {
-            background-color: #3399ff;
-            
         }
         .instructions {
             margin-top: 30px;
@@ -210,7 +168,6 @@
         let lastScannedTime = 0; 
         const SCAN_COOLDOWN = 2000; 
         
-
         async function loadProductData() {
             try {
                 const response = await fetch('product-data.json');
@@ -260,7 +217,7 @@
             });
         }
 
-                function handleSalesScan(decodedText) {
+        function handleSalesScan(decodedText) {
             const statusElement = document.getElementById('status');
             const product = productData.find(item => item.barCode === decodedText.trim());
             if (product) {
@@ -282,6 +239,7 @@
                 statusElement.className = 'error';
             }
         }
+
         function handleWarehouseScan(decodedText) {
             const statusElement = document.getElementById('status');
             const product = productData.find(item => item.salesCode === decodedText.trim());
@@ -304,6 +262,7 @@
                 statusElement.className = 'error';
             }
         }
+
         function updateRefillList() {
             const listElement = document.getElementById('salesRefillList');
             listElement.innerHTML = '';
@@ -316,6 +275,7 @@
                 listElement.appendChild(li);
             });
         }
+
         async function playSound(type) {
             if (isPlayingSound) return;
             isPlayingSound = true;
@@ -333,6 +293,7 @@
             } finally {
                 isPlayingSound = false;
             }
+        }
 
         function scrollToTop() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
