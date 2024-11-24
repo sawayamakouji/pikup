@@ -5554,20 +5554,29 @@
             }
         }
 
-        function handleSalesScan(decodedText) {
-            const statusElement = document.getElementById('status');
-            const product = productData.find(item => item.barCode === decodedText);
+function handleSalesScan(decodedText) {
+    const statusElement = document.getElementById('status');
+    const product = productData.find(item => item.barCode === decodedText);
 
-            if (product) {
-                refillList.push({ code: product.barCode, name: product.name, status: '要補充' });
-                updateRefillList();
-                statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
-                statusElement.className = 'success';
-            } else {
-                statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
-                statusElement.className = 'error';
-            }
+    if (product) {
+        const existingItem = refillList.find(item => item.code === product.barCode);
+
+        if (!existingItem) {
+            // 商品がまだリストに存在しない場合に追加
+            refillList.push({ code: product.barCode, name: product.name, status: '要補充' });
+            updateRefillList();
+            statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
+            statusElement.className = 'success';
+        } else {
+            // 商品がすでにリストに存在する場合
+            statusElement.textContent = `バーコード ${decodedText} (${product.name}) はすでにリストに存在します。`;
+            statusElement.className = 'success';
         }
+    } else {
+        statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
+        statusElement.className = 'error';
+    }
+}
 
         function handleWarehouseScan(decodedText) {
             const statusElement = document.getElementById('status');
