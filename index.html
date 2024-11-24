@@ -82,6 +82,8 @@
                 (decodedText) => {
                     if (mode === 'sales') {
                         handleSalesScan(decodedText);
+                    } else if (mode === 'warehouse') {
+                        handleWarehouseScan(decodedText);
                     }
                     stopScanning();
                 },
@@ -128,6 +130,28 @@
             }
         }
 
+        function handleWarehouseScan(decodedText) {
+            const statusElement = document.getElementById('status');
+            const product = productData.find(item => item.salesCade === decodedText);
+
+            if (product) {
+                const foundItem = refillList.find(item => item.code === product.barCode);
+
+                if (foundItem) {
+                    foundItem.status = 'ピッキング';
+                    updateRefillList();
+                    statusElement.textContent = `商品コード ${decodedText} が見つかり、ステータスを「ピッキング」に更新しました。`;
+                    statusElement.className = 'success';
+                } else {
+                    statusElement.textContent = `販売商品コード ${decodedText} の関連するバラ商品がリストに存在しません。`;
+                    statusElement.className = 'error';
+                }
+            } else {
+                statusElement.textContent = `販売商品コード ${decodedText} がデータに存在しません。`;
+                statusElement.className = 'error';
+            }
+        }
+
         function updateRefillList() {
             const listElement = document.getElementById('salesRefillList');
             listElement.innerHTML = '';
@@ -149,6 +173,9 @@
     <h2>売場スキャン</h2>
     <button onclick="startScanning('sales')">売場スキャン開始</button>
     <ul id="salesRefillList"></ul>
+
+    <h2>倉庫スキャン</h2>
+    <button onclick="startScanning('warehouse')">倉庫スキャン開始</button>
 
     <div id="reader" style="width: 100%; max-width: 600px;"></div>
 
