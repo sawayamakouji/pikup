@@ -75,12 +75,54 @@
             margin: 5px 0;
             padding: 10px;
             border-radius: 5px;
-            background-color: #00304d; /* デフォルト背景色 */
-            color: #e0f2ff; /* デフォルト文字色 */
+            background-color: #00304d;
+            color: #e0f2ff;
         }
         .picking-status {
-            background-color: #006d77; /* ピッキング状態の背景色 */
-            color: #ffffff; /* 白い文字 */
+            background-color: #006d77;
+            color: #ffffff;
+        }
+        .instructions {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .instructions h2 {
+            color: #4db8ff;
+        }
+        .instruction-item {
+            margin-bottom: 20px;
+            background-color: #002a3b;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .instruction-item img {
+            max-width: 80px;
+            max-height: 80px;
+            border-radius: 8px;
+            border: 2px solid #4db8ff;
+        }
+        .instruction-item p {
+            margin: 0;
+            color: #e0f2ff;
+        }
+        .scroll-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #4db8ff;
+            color: #001829;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .scroll-top:hover {
+            background-color: #3399ff;
         }
     </style>
 </head>
@@ -98,15 +140,28 @@
     <h2>スキャン結果</h2>
     <ul id="salesRefillList"></ul>
 
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <div class="instructions">
+        <h2>使い方</h2>
+        <div class="instruction-item">
+            <img src="./images/step1.png" alt="スキャン画面の画像">
+            <p>1. 売場スキャンボタンをクリックし、商品バーコードをカメラでスキャンしてください。</p>
+        </div>
+        <div class="instruction-item">
+            <img src="./images/step2.png" alt="リスト表示の画像">
+            <p>2. スキャンされた商品はリストに追加され、補充が必要な場合に表示されます。</p>
+        </div>
+        <div class="instruction-item">
+            <img src="./images/step3.png" alt="ピッキング状態の画像">
+            <p>3. 倉庫スキャンでピッキングが必要な商品を確認し、完了したらリストが更新されます。</p>
+        </div>
+    </div>
+
+    <div class="scroll-top" onclick="scrollToTop()">↑ 一番上に戻る</div>
+
     <script>
         let productData = [];
         let refillList = [];
         let html5QrCode;
-        let isPlayingSound = false; 
-        let lastScannedCode = null; 
-        let lastScannedTime = 0; 
-        const SCAN_COOLDOWN = 2000; 
 
         async function loadProductData() {
             try {
@@ -134,15 +189,6 @@
                     qrbox: { width: 250, height: 250 }
                 },
                 (decodedText) => {
-                    const now = Date.now();
-                    if (decodedText === lastScannedCode && now - lastScannedTime < SCAN_COOLDOWN) {
-                        console.log("スキャンを無視しました: 同じコードが短時間でスキャンされました。");
-                        return;
-                    }
-
-                    lastScannedCode = decodedText;
-                    lastScannedTime = now;
-
                     if (mode === 'sales') {
                         handleSalesScan(decodedText);
                     } else if (mode === 'warehouse') {
@@ -158,91 +204,8 @@
             });
         }
 
-        function handleSalesScan(decodedText) {
-            const statusElement = document.getElementById('status');
-            const product = productData.find(item => item.barCode === decodedText.trim());
-
-            if (product) {
-                const existingItem = refillList.find(item => item.code === product.barCode);
-
-                if (!existingItem) {
-                    refillList.push({ code: product.barCode, name: product.name, status: '要補充' });
-                    updateRefillList();
-                    playSound('success');
-                    statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
-                    statusElement.className = 'success';
-                } else {
-                    playSound('error');
-                    statusElement.textContent = `バーコード ${decodedText} (${product.name}) はすでにリストに存在します。`;
-                    statusElement.className = 'success';
-                }
-            } else {
-                playSound('error');
-                statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
-                statusElement.className = 'error';
-            }
-        }
-
-        function handleWarehouseScan(decodedText) {
-            const statusElement = document.getElementById('status');
-            const product = productData.find(item => item.salesCode === decodedText.trim());
-
-            if (product) {
-                const foundItem = refillList.find(item => item.code === product.barCode);
-
-                if (foundItem) {
-                    foundItem.status = 'ピッキング';
-                    updateRefillList();
-                    playSound('picking');
-                    statusElement.textContent = `商品コード ${decodedText} が見つかり、ステータスを「ピッキング」に更新しました。`;
-                    statusElement.className = 'success';
-                } else {
-                    playSound('replenish');
-                    statusElement.textContent = `販売商品コード ${decodedText} の関連するバラ商品がリストに存在しません。`;
-                    statusElement.className = 'error';
-                }
-            } else {
-                playSound('error');
-                statusElement.textContent = `販売商品コード ${decodedText} がデータに存在しません。`;
-                statusElement.className = 'error';
-            }
-        }
-
-        function updateRefillList() {
-            const listElement = document.getElementById('salesRefillList');
-            listElement.innerHTML = '';
-
-            refillList.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.code} - ${item.name} - ${item.status}`;
-
-                if (item.status === 'ピッキング') {
-                    li.className = 'picking-status';
-                }
-
-                listElement.appendChild(li);
-            });
-        }
-
-        async function playSound(type) {
-            if (isPlayingSound) return;
-            isPlayingSound = true;
-
-            const sounds = {
-                success: "./sounds/success.mp3",
-                error: "./sounds/error.mp3",
-                picking: "./sounds/picking.mp3",
-                replenish: "./sounds/replenish.mp3"
-            };
-
-            try {
-                const audio = new Audio(sounds[type]);
-                await audio.play();
-            } catch (err) {
-                console.error('音声再生エラー:', err);
-            } finally {
-                isPlayingSound = false;
-            }
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         document.addEventListener('DOMContentLoaded', loadProductData);
