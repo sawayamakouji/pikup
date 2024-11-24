@@ -168,7 +168,7 @@
 
         function handleWarehouseScan(decodedText) {
             const statusElement = document.getElementById('status');
-            const product = productData.find(item => item.salesCade === decodedText.trim());
+            const product = productData.find(item => item.salescode === decodedText.trim());
 
             if (product) {
                 const foundItem = refillList.find(item => item.code === product.barCode);
