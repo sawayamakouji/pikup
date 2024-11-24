@@ -13,10 +13,34 @@
             margin: 0 auto;
             padding: 20px;
             box-sizing: border-box;
+            text-align: center;
         }
-        h1, h2 {
+        h1 {
             color: #4db8ff;
             text-shadow: 0 0 10px #4db8ff;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        button {
+            font-size: 1.2rem;
+            padding: 15px 30px;
+            background-color: #4db8ff;
+            color: #001829;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        button:hover {
+            background-color: #3399ff;
+        }
+        button:active {
+            background-color: #1a73e8;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         #reader {
             width: 100%;
@@ -43,14 +67,35 @@
         }
         ul {
             padding-left: 20px;
+            list-style: none;
+            text-align: left;
+            margin-top: 20px;
         }
         li {
             margin: 5px 0;
+            background-color: #00304d;
+            padding: 10px;
+            border-radius: 5px;
         }
     </style>
+</head>
+<body>
+    <h1>補充担当者支援アプリ</h1>
+
+    <div class="button-container">
+        <button onclick="startScanning('sales')">売場スキャン</button>
+        <button onclick="startScanning('warehouse')">倉庫スキャン</button>
+    </div>
+
+    <div id="reader"></div>
+    <div id="status"></div>
+
+    <h2>スキャン結果</h2>
+    <ul id="salesRefillList"></ul>
+
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
-        let productData = []; // 初期値は空
+        let productData = [];
         let refillList = [];
         let html5QrCode;
 
@@ -65,18 +110,6 @@
             } catch (error) {
                 console.error('商品データのロードに失敗しました:', error);
             }
-        }
-
-        function playSound(type) {
-            const sounds = {
-                success: "./sounds/success.mp3",
-                error: "./sounds/error.mp3",
-                picking: "./sounds/picking.mp3",
-                replenish: "./sounds/replenish.mp3"
-            };
-
-            const audio = new Audio(sounds[type]);
-            audio.play();
         }
 
         function startScanning(mode) {
@@ -104,7 +137,6 @@
             ).catch(err => {
                 statusElement.textContent = `エラー: ${err}`;
                 statusElement.className = 'error';
-                playSound("error");
             });
         }
 
@@ -118,24 +150,24 @@
                 if (!existingItem) {
                     refillList.push({ code: product.barCode, name: product.name, status: '要補充' });
                     updateRefillList();
+                    playSound('success');
                     statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
                     statusElement.className = 'success';
-                    playSound("replenish");
                 } else {
+                    playSound('error');
                     statusElement.textContent = `バーコード ${decodedText} (${product.name}) はすでにリストに存在します。`;
                     statusElement.className = 'success';
-                    playSound("success");
                 }
             } else {
+                playSound('error');
                 statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
                 statusElement.className = 'error';
-                playSound("error");
             }
         }
 
         function handleWarehouseScan(decodedText) {
             const statusElement = document.getElementById('status');
-            const product = productData.find(item => item.salesCade === decodedText);
+            const product = productData.find(item => item.salesCode === decodedText);
 
             if (product) {
                 const foundItem = refillList.find(item => item.code === product.barCode);
@@ -143,18 +175,18 @@
                 if (foundItem) {
                     foundItem.status = 'ピッキング';
                     updateRefillList();
+                    playSound('picking');
                     statusElement.textContent = `商品コード ${decodedText} が見つかり、ステータスを「ピッキング」に更新しました。`;
                     statusElement.className = 'success';
-                    playSound("picking");
                 } else {
+                    playSound('replenish');
                     statusElement.textContent = `販売商品コード ${decodedText} の関連するバラ商品がリストに存在しません。`;
                     statusElement.className = 'error';
-                    playSound("error");
                 }
             } else {
+                playSound('error');
                 statusElement.textContent = `販売商品コード ${decodedText} がデータに存在しません。`;
                 statusElement.className = 'error';
-                playSound("error");
             }
         }
 
@@ -169,22 +201,20 @@
             });
         }
 
+        function playSound(type) {
+            const sounds = {
+                success: "./sounds/success.wav",
+                error: "./sounds/error.wav",
+                picking: "./sounds/picking.wav",
+                replenish: "./sounds/replenish.wav"
+            };
+
+            const audio = new Audio(sounds[type]);
+            audio.play();
+        }
+
         // ページロード時に JSON をロード
         document.addEventListener('DOMContentLoaded', loadProductData);
     </script>
-</head>
-<body>
-    <h1>補充担当者支援アプリ</h1>
-
-    <h2>売場スキャン</h2>
-    <button onclick="startScanning('sales')">売場スキャン開始</button>
-    <ul id="salesRefillList"></ul>
-
-    <h2>倉庫スキャン</h2>
-    <button onclick="startScanning('warehouse')">倉庫スキャン開始</button>
-
-    <div id="reader" style="width: 100%; max-width: 600px;"></div>
-
-    <div id="status"></div>
 </body>
 </html>
