@@ -195,52 +195,64 @@
             }
         }
 
-function startScanning(mode) {
-    const statusElement = document.getElementById('status');
-    statusElement.textContent = 'スキャン進行中...';
-    statusElement.className = '';
+        function startScanning(mode) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = 'スキャン進行中...';
+            statusElement.className = '';
 
-    // html5-qrcodeの初期化と設定
-    html5QrCode = new Html5Qrcode("reader");
-    html5QrCode
-        .start(
-            { facingMode: "environment" }, // 背面カメラを使用
-            {
-                fps: 10, // フレームレート
-                qrbox: { width: 250, height: 250 }, // 読み取り領域
-            },
-            (decodedText) => {
-                // スキャン結果を処理
-                handleDecodedText(decodedText, mode);
-            },
-            (errorMessage) => {
-                // スキャンエラーの処理（デバッグ用）
-                console.warn('スキャンエラー:', errorMessage);
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText) => {
+                    const now = Date.now();
+                    if (decodedText === lastScannedCode && now - lastScannedTime < SCAN_COOLDOWN) {
+                        console.log("スキャンを無視しました: 同じコードが短時間でスキャンされました。");
+                        return;
+                    }
+                    lastScannedCode = decodedText;
+                    lastScannedTime = now;
+                    
+                    if (mode === 'sales') {
+                        handleSalesScan(decodedText);
+                    } else if (mode === 'warehouse') {
+                        handleWarehouseScan(decodedText);
+                    }
+                },
+                (errorMessage) => {
+                    console.error('スキャンエラー:', errorMessage);
+                }
+            ).catch(err => {
+                statusElement.textContent = `エラー: ${err}`;
+                statusElement.className = 'error';
+            });
+        }
+
+        function handleSalesScan(decodedText) {
+            const statusElement = document.getElementById('status');
+            const product = productData.find(item => item.barCode === decodedText.trim());
+            if (product) {
+                const existingItem = refillList.find(item => item.code === product.barCode);
+                if (!existingItem) {
+                    refillList.push({ code: product.barCode, name: product.name, status: '要補充' });
+                    updateRefillList();
+                    playSound('success');
+                    statusElement.textContent = `バーコード ${decodedText} (${product.name}) を「要補充」リストに追加しました。`;
+                    statusElement.className = 'success';
+                } else {
+                    playSound('error');
+                    statusElement.textContent = `バーコード ${decodedText} (${product.name}) はすでにリストに存在します。`;
+                    statusElement.className = 'success';
+                }
+            } else {
+                playSound('error');
+                statusElement.textContent = `商品コード ${decodedText} が見つかりません。`;
+                statusElement.className = 'error';
             }
-        )
-        .catch((err) => {
-            statusElement.textContent = `エラー: ${err}`;
-            statusElement.className = 'error';
-        });
-}
-
-function handleDecodedText(decodedText, mode) {
-    const now = Date.now();
-    // 同じバーコードを短期間で無視
-    if (decodedText === lastScannedCode && now - lastScannedTime < SCAN_COOLDOWN) {
-        console.log("同じバーコードを無視しました。");
-        return;
-    }
-    lastScannedCode = decodedText;
-    lastScannedTime = now;
-
-    // モードに応じた処理
-    if (mode === 'sales') {
-        handleSalesScan(decodedText);
-    } else if (mode === 'warehouse') {
-        handleWarehouseScan(decodedText);
-    }
-}
+        }
 
         function handleWarehouseScan(decodedText) {
             const statusElement = document.getElementById('status');
